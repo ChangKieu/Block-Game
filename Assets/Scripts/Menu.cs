@@ -26,6 +26,7 @@ public class Menu : MonoBehaviour
     }
     public void NextLevel()
     {
+
         PlayerPrefs.SetInt("unlock", PlayerPrefs.GetInt("unlock", 1) + 1);
         Time.timeScale = 1f;
         UIScript.UpdateStage(1);

@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 public class BlockController : MonoBehaviour
 {
-    [SerializeField] private GameObject[] blocks,dot;
+    [SerializeField] private GameObject[] blocks,dot,blockLine,blockCross;
     [SerializeField] private int disStage,rows, columns, target, up = 0;
     [SerializeField] private float distance;
     [SerializeField] private Transform blockContainer, dotContainer;
@@ -168,12 +168,89 @@ public class BlockController : MonoBehaviour
                 int numRow = hit.collider.gameObject.GetComponent<Color>().numRow;
                 int numCol = hit.collider.gameObject.GetComponent<Color>().numCol;
                 Debug.Log(numRow + " " + numCol);
-                OnBlockClicked(numRow, numCol);
+                if (hit.collider.CompareTag("Block"))
+                    OnBlockClicked(numRow, numCol);
+                else if (hit.collider.CompareTag("Line"))
+                    DestroyBlocksLine(numRow, numCol);
+                else if (hit.collider.CompareTag("Cross"))
+                    DestroyBlocksCross(numRow, numCol);
             }
         }
     }
 
+    void DestroyBlocksLine(int row, int col)
+    {
+        if (grid[row,col].GetComponent<Color>().color % 2 == 0)
+        {
+            for (int j = 0; j < columns; j++)
+            {
+                if (grid[row, j] != null)
+                {
+                    if (grid[row, j].GetComponent<Color>().color == UIScript.getTargetColor())
+                    {
+                        UIScript.UpdateTarget(1);
+                        UIScript.targetToText();
+                    }
+                    grid[row, j].GetComponent<Color>().DestroyBlock(0.1f);
+                    grid[row, j] = null;
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < rows; i++)
+            {
+                if (grid[i, col] != null)
+                {
+                    if (grid[i, col].GetComponent<Color>().color == UIScript.getTargetColor())
+                    {
+                        UIScript.UpdateTarget(1);
+                        UIScript.targetToText();
+                    }
+                    grid[i, col].GetComponent<Color>().DestroyBlock(0.1f);
+                    grid[i, col] = null;
+                }
+            }
+        }
+        MoveGrid();
+        //Update grid[rows+1,columns]
+        if ((rows - CountEmptyRows()) <= 10)
+            StartCoroutine(WaitAndUpdateGrid());
+    }
+    void DestroyBlocksCross(int row, int col)
+    {
+        for (int j = 0; j < columns; j++)
+        {
+            if (grid[row, j] != null)
+            {
+                if (grid[row, j].GetComponent<Color>().color == UIScript.getTargetColor())
+                {
+                    UIScript.UpdateTarget(1);
+                    UIScript.targetToText();
+                }
+                grid[row, j].GetComponent<Color>().DestroyBlock(0.1f);
+                grid[row, j] = null;
+            }
+        }
 
+        for (int i = 0; i < rows; i++)
+        {
+            if (grid[i, col] != null)
+            {
+                if (grid[i, col].GetComponent<Color>().color == UIScript.getTargetColor())
+                {
+                    UIScript.UpdateTarget(1);
+                    UIScript.targetToText();
+                }
+                grid[i, col].GetComponent<Color>().DestroyBlock(0.1f);
+                grid[i, col] = null;
+            }
+        }
+        MoveGrid();
+        //Update grid[rows+1,columns]
+        if ((rows - CountEmptyRows()) <= 10)
+            StartCoroutine(WaitAndUpdateGrid());
+    }
     void CheckAdjacentBlocks(int row, int col, HashSet<GameObject> visitedBlocks, int targetColor, ref HashSet<GameObject> blocksToDestroy)
     {
         if (row < 0 || row >= rows || col < 0 || col >= columns)
@@ -202,6 +279,9 @@ public class BlockController : MonoBehaviour
         CheckAdjacentBlocks(row, col, new HashSet<GameObject>(), grid[row, col].GetComponent<Color>().color, ref blocksToDestroy);
         if (blocksToDestroy.Count >= 2)
         {
+            int check = blocksToDestroy.Count;
+            int checkRow, checkCol, checkColor = grid[row, col].GetComponent<Color>().color;
+            Vector3 pos = grid[row, col].transform.position;
             UIScript.UpdateTurn(1);
             UIScript.turnToText();
             if (grid[row, col].GetComponent<Color>().color == UIScript.getTargetColor())
@@ -209,35 +289,35 @@ public class BlockController : MonoBehaviour
                 UIScript.UpdateTarget(blocksToDestroy.Count);
                 UIScript.targetToText();
             }
-
+            
             foreach (GameObject block in blocksToDestroy)
             {
+                checkRow = block.GetComponent<Color>().numRow;
+                checkCol = block.GetComponent<Color>().numCol;
                 block.GetComponent<Color>().DestroyBlock(0.1f);
                 //Destroy(block);
                 grid[block.GetComponent<Color>().numRow, block.GetComponent<Color>().numCol] = null;
             }
-
-            for (int j = 0; j < columns; j++)
+            if(check>=10)
             {
-                for (int i = rows - 1; i >= 0; i--)
-                {
-                    if (grid[i, j] == null)
-                    {
-                        for (int k = i - 1; k >= 0; k--)
-                        {
-                            if (grid[k, j] != null)
-                            {
-                                grid[k, j].GetComponent<Color>().MoveDown(i - k, 0.3f); 
-                                grid[k, j].GetComponent<Color>().numRow = i;
-                                grid[k, j].GetComponent<Color>().numCol = j;
-                                grid[i, j] = grid[k, j];
-                                grid[k, j] = null;
-                                break;
-                            }
-                        }
-                    }
-                }
+                GameObject block = Instantiate(blockCross[checkColor], pos, Quaternion.identity);
+                grid[row, col] = block;
+                block.transform.parent = blockContainer;
+                block.GetComponent<Color>().numRow = row;
+                block.GetComponent<Color>().numCol = col;
+                block.GetComponent<Color>().AppearBlock(0.2f);
             }
+            else if (check >= 5)
+            {
+                int x = Random.Range(checkColor*2, checkColor*2 + 1);
+                GameObject block = Instantiate(blockLine[x], pos, Quaternion.identity);
+                grid[row, col] = block;
+                block.transform.parent = blockContainer;
+                block.GetComponent<Color>().numRow = row;
+                block.GetComponent<Color>().numCol = col;
+                block.GetComponent<Color>().AppearBlock(0.2f);
+            }
+            MoveGrid();
             //Update grid[rows+1,columns]
             if ((rows - CountEmptyRows()) <= 10)
                 StartCoroutine(WaitAndUpdateGrid());
@@ -274,6 +354,30 @@ public class BlockController : MonoBehaviour
         }
 
         return emptyRowCount;
+    }
+    void MoveGrid()
+    {
+        for (int j = 0; j < columns; j++)
+        {
+            for (int i = rows - 1; i >= 0; i--)
+            {
+                if (grid[i, j] == null)
+                {
+                    for (int k = i - 1; k >= 0; k--)
+                    {
+                        if (grid[k, j] != null)
+                        {
+                            grid[k, j].GetComponent<Color>().MoveDown(i - k, 0.3f);
+                            grid[k, j].GetComponent<Color>().numRow = i;
+                            grid[k, j].GetComponent<Color>().numCol = j;
+                            grid[i, j] = grid[k, j];
+                            grid[k, j] = null;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
     void UpDateGrid()
     {

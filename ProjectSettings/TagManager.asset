@@ -7,6 +7,8 @@ TagManager:
   - Block
   - Score
   - UI
+  - Cross
+  - Line
   layers:
   - Default
   - TransparentFX

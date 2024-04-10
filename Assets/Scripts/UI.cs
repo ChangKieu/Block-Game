@@ -10,6 +10,7 @@ public class UI : MonoBehaviour
     [SerializeField] private bool gameOver;
     [SerializeField] private TextMeshProUGUI targetText, turnText, stageText;
     [SerializeField] private GameObject win, lose;
+    
 
     void Start()
     {

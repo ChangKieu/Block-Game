@@ -9,6 +9,7 @@ public class LoadLevel : MonoBehaviour
     [SerializeField] Button[] buttons;
     private void Awake()
     {
+
         int unlock = PlayerPrefs.GetInt("unlock", 1);
         if (buttons.Length < unlock)
         {
